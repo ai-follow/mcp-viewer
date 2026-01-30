@@ -1,0 +1,13 @@
+{
+  "name": "mcp-server-example",
+  "version": "1.0.0",
+  "description": "MCP 服务器 CORS 配置示例",
+  "main": "mcp-server-with-cors.js",
+  "scripts": {
+    "start": "node mcp-server-with-cors.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

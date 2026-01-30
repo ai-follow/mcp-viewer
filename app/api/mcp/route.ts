@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
+// 添加 CORS 头
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   let client: Client | null = null;
   let transport: SSEClientTransport | null = null;
@@ -12,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!serverUrl) {
       return NextResponse.json(
         { error: "服务器地址不能为空" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -23,7 +34,7 @@ export async function POST(request: NextRequest) {
     } catch (urlError) {
       return NextResponse.json(
         { error: "无效的 URL 格式" },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -61,9 +72,12 @@ export async function POST(request: NextRequest) {
     // 关闭连接
     await client.close();
 
-    return NextResponse.json({
-      tools: toolsResponse.tools || [],
-    });
+    return NextResponse.json(
+      {
+        tools: toolsResponse.tools || [],
+      },
+      { headers: corsHeaders }
+    );
   } catch (error: any) {
     console.error("MCP 连接错误:", error);
 
@@ -78,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // 提供更详细的错误信息
     let errorMessage = "连接 MCP 服务器失败";
-    
+
     if (error.code === 400) {
       errorMessage = "服务器返回 400 错误。请确保：\n1. URL 格式正确（如 http://localhost:3001 或 http://localhost:3001/sse）\n2. MCP 服务器正在运行\n3. 服务器支持 SSE 连接";
     } else if (error.code === 404) {

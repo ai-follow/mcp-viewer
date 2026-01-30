@@ -7,17 +7,88 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MCPTool, ConnectionStatus } from "@/types/mcp";
 import { AlertCircle, Sparkles, Server } from "lucide-react";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 export default function Home() {
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const [error, setError] = useState<string>("");
+  const [useProxy, setUseProxy] = useState<boolean>(false);
 
-  const handleConnect = async (serverUrl: string) => {
-    setStatus("connecting");
-    setError("");
-    setTools([]);
+  const handleConnectDirect = async (serverUrl: string) => {
+    let client: Client | null = null;
 
+    try {
+      // 验证 URL 格式
+      let url: URL;
+      try {
+        url = new URL(serverUrl);
+      } catch (urlError) {
+        throw new Error("无效的 URL 格式");
+      }
+
+      // 如果 URL 没有指定端点，尝试添加 /sse
+      if (!url.pathname || url.pathname === "/") {
+        url.pathname = "/sse";
+      }
+
+      console.log("正在直接连接到 MCP 服务器:", url.toString());
+
+      // 创建 SSE 传输层
+      const transport = new SSEClientTransport(url);
+
+      // 创建 MCP 客户端
+      client = new Client(
+        {
+          name: "mcp-viewer",
+          version: "1.0.0",
+        },
+        {
+          capabilities: {},
+        }
+      );
+
+      // 连接到服务器
+      await client.connect(transport);
+
+      console.log("成功连接到 MCP 服务器");
+
+      // 获取工具列表
+      const toolsResponse = await client.listTools();
+
+      console.log("获取到工具列表:", toolsResponse.tools?.length || 0, "个工具");
+
+      // 类型转换：SDK 返回的工具类型需要转换为我们的 MCPTool 类型
+      setTools((toolsResponse.tools || []) as MCPTool[]);
+      setStatus("connected");
+
+      // 关闭连接
+      await client.close();
+    } catch (error: any) {
+      console.error("MCP 直连错误:", error);
+
+      // 确保连接被关闭
+      if (client) {
+        try {
+          await client.close();
+        } catch (closeError) {
+          console.error("关闭连接时出错:", closeError);
+        }
+      }
+
+      // 检查是否是 CORS 错误
+      if (error.message?.includes("CORS") || error.message?.includes("fetch")) {
+        throw new Error(
+          "遇到 CORS 跨域问题。请尝试：\n1. 启用下方的「使用代理模式」选项\n2. 或在 MCP 服务器端配置 CORS 允许跨域访问"
+        );
+      }
+
+      throw error;
+    }
+  };
+
+  const handleConnectViaProxy = async (serverUrl: string) => {
     try {
       const response = await fetch("/api/mcp", {
         method: "POST",
@@ -36,20 +107,36 @@ export default function Home() {
       setTools(data.tools || []);
       setStatus("connected");
     } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleConnect = async (serverUrl: string) => {
+    setStatus("connecting");
+    setError("");
+    setTools([]);
+
+    try {
+      if (useProxy) {
+        await handleConnectViaProxy(serverUrl);
+      } else {
+        await handleConnectDirect(serverUrl);
+      }
+    } catch (err) {
       setError(err instanceof Error ? err.message : "连接 MCP 服务器失败");
       setStatus("error");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* 页面标题 */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4">
             <Sparkles className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight mb-2 bg-linear-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             MCP 工具查看器
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -59,7 +146,12 @@ export default function Home() {
 
         {/* 服务器输入 */}
         <div className="mb-8">
-          <ServerInput onConnect={handleConnect} status={status} />
+          <ServerInput
+            onConnect={handleConnect}
+            status={status}
+            useProxy={useProxy}
+            onProxyChange={setUseProxy}
+          />
         </div>
 
         {/* 错误提示 */}

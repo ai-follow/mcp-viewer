@@ -19,6 +19,7 @@ export interface MCPTool {
     type: string;
     properties?: Record<string, MCPToolParameter>;
     required?: string[];
+    [key: string]: any; // 允许额外的属性
   };
 }
 

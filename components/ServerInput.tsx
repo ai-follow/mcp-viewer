@@ -5,15 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Server, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Server, CheckCircle2, XCircle, Shield, Zap } from "lucide-react";
 import { ConnectionStatus } from "@/types/mcp";
 
 interface ServerInputProps {
   onConnect: (serverUrl: string) => Promise<void>;
   status: ConnectionStatus;
+  useProxy: boolean;
+  onProxyChange: (useProxy: boolean) => void;
 }
 
-export function ServerInput({ onConnect, status }: ServerInputProps) {
+export function ServerInput({ onConnect, status, useProxy, onProxyChange }: ServerInputProps) {
   const [serverUrl, setServerUrl] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +69,33 @@ export function ServerInput({ onConnect, status }: ServerInputProps) {
                 "连接"
               )}
             </Button>
+          </div>
+
+          {/* 连接模式切换 */}
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <button
+              type="button"
+              onClick={() => onProxyChange(!useProxy)}
+              className="flex items-center gap-2 text-sm"
+            >
+              <div className={`w-11 h-6 rounded-full transition-colors ${useProxy ? 'bg-primary' : 'bg-gray-300'} relative cursor-pointer`}>
+                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${useProxy ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+              <span className="font-medium">使用代理模式</span>
+            </button>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {useProxy ? (
+                <>
+                  <Shield className="h-4 w-4" />
+                  <span>通过服务器代理连接（解决 CORS）</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  <span>浏览器直连（更快，需要 CORS 支持）</span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* 状态指示器 */}
