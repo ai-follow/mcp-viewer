@@ -2,6 +2,10 @@
 
 一个用于连接和查看 MCP（Model Context Protocol）服务器工具信息的可视化 Web 应用。通过简洁直观的界面，快速探索 MCP 服务器提供的所有可用工具及其详细参数。
 
+## 🌐 在线体验
+
+**线上地址**: [https://mcp-viewer-info.vercel.app/](https://mcp-viewer-info.vercel.app/)
+
 ## ✨ 项目特点
 
 - 🔗 **快速连接**：输入 MCP 服务器地址即可连接
